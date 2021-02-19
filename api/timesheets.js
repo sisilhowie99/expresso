@@ -50,54 +50,63 @@ timesheetsRouter.param('timesheetId', (req, res, next, id) => {
     )
 });
 
+timesheetsRouter.get('/:timesheetId', (req, res, next) => {
+    res.status(200).json({timesheet: req.timesheet});
+})
+
 timesheetsRouter.post('/', (req, res, next) => {
     const hours = req.body.timesheet.hours;
     const rate = req.body.timesheet.rate;
     const date = req.body.timesheet.date;
     const employeeId = req.params.employeeId;
 
-    // finds the employee with the supplied ID
-    db.get(
-        'SELECT * FROM Employee WHERE id=$employeeId',
-        {$employeeId: employeeId},
-        (err, employee) => {
-            if(err) {
-                next(err);
-            } else if(employee) {
-                // if there is, insert a new timesheet for them
-                db.run(
-                    'INSERT INTO Timesheet (hours, rate, date, employee_id) VALUES ($hours, $rate, $date, $employeeId)',
-                    {
-                        $hours: hours,
-                        $rate: rate,
-                        $date: date,
-                        $employeeId: employeeId
-                    },
-                    function(err) {
-                        if(err) {
-                            next(err);
-                        } else {
-                            // return the newly created timesheet for the employee
-                            db.get(
-                                'SELECT * FROM Timesheet WHERE id=$timesheetId',
-                                {$timesheetId: this.lastID},
-                                (err, timesheet) => {
-                                    if(err) {
-                                        next(err);
-                                    } else {
-                                        res.status(201).json({timesheet: timesheet});
+    // checks if the required fields are provided
+    if(!hours || !rate || !date) {
+        return res.status(400).send();
+    } else {
+        // finds the employee with the supplied ID
+        db.get(
+            'SELECT * FROM Employee WHERE id=$employeeId',
+            {$employeeId: employeeId},
+            (err, employee) => {
+                if(err) {
+                    next(err);
+                } else if(employee) {
+                    // if there is, insert a new timesheet for them
+                    db.run(
+                        'INSERT INTO Timesheet (hours, rate, date, employee_id) VALUES ($hours, $rate, $date, $employeeId)',
+                        {
+                            $hours: hours,
+                            $rate: rate,
+                            $date: date,
+                            $employeeId: employeeId
+                        },
+                        function(err) {
+                            if(err) {
+                                next(err);
+                            } else {
+                                // return the newly created timesheet for the employee
+                                db.get(
+                                    'SELECT * FROM Timesheet WHERE id=$timesheetId',
+                                    {$timesheetId: this.lastID},
+                                    (err, timesheet) => {
+                                        if(err) {
+                                            next(err);
+                                        } else {
+                                            res.status(201).json({timesheet: timesheet});
+                                        }
                                     }
-                                }
-                            )
+                                )
+                            }
                         }
-                    }
-                )
-            } else {
-                // if none found, return an error
-                return res.status(404).send();
+                    )
+                } else {
+                    // if none found, return an error
+                    return res.status(404).send();
+                }
             }
-        }
-    )
+        )
+    }
 });
 
 timesheetsRouter.put('/:timesheetId', (req, res, next) => {

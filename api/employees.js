@@ -89,11 +89,11 @@ employeesRouter.put('/:employeeId', (req, res, next) => {
         db.get(
             'SELECT * FROM Employee WHERE id=$employeeId',
             {$employeeId: req.params.employeeId},
-            (err) => {
+            (err, employee) => {
                 if(err) {
                     // return an error if there's no employee with that ID
                     next(err);
-                } else {
+                } else if(employee) {
                     // update the employee's details if they exist in the database
                     db.run(
                         'UPDATE Employee SET name=$name, position=$position, wage=$wage WHERE id=$employeeId',
@@ -122,6 +122,8 @@ employeesRouter.put('/:employeeId', (req, res, next) => {
                         }
                     )
 
+                } else {
+                    return res.status(404).send();
                 }
             }
         )
