@@ -4,6 +4,9 @@ const employeesRouter = express.Router();
 const sqlite3 = require('sqlite3');
 const db = new sqlite3.Database(process.env.TEST_DATABASE || './database.sqlite');
 
+const timesheetsRouter = require('./timesheets');
+employeesRouter.use('/:employeeId/timesheets', timesheetsRouter);
+
 employeesRouter.get('/', (req, res, next) => {
     db.all(
         'SELECT * FROM Employee WHERE is_current_employee=1',
@@ -28,7 +31,7 @@ employeesRouter.param('employeeId', (req, res, next, id) => {
                 req.employee = employee;
                 next();
             } else {
-                res.status(404).send();
+                return res.status(404).send();
             }
         }
     )
@@ -89,7 +92,7 @@ employeesRouter.put('/:employeeId', (req, res, next) => {
             (err) => {
                 if(err) {
                     // return an error if there's no employee with that ID
-                    return res.status(404).send();
+                    next(err);
                 } else {
                     // update the employee's details if they exist in the database
                     db.run(
@@ -133,7 +136,7 @@ employeesRouter.delete('/:employeeId', (req, res, next) => {
         (err) => {
             if (err) {
                 // if not, return an error
-                return res.status(404).send();
+                next(err);
             } else {
                 // otherwise update the employment status
                 db.run(
